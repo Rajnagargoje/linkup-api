@@ -20,8 +20,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByPublicId(String publicId);
 
-    // Nearby search must exclude deleted/banned users — a deleted account
-    // shouldn't keep showing up to strangers just because its row is
-    // still physically in the table (soft delete).
     List<User> findByLocationVisibleTrueAndLatitudeIsNotNullAndLongitudeIsNotNullAndIsDeletedFalseAndIsBannedFalse();
 }
