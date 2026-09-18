@@ -32,6 +32,7 @@ public class PersonProfileResponse {
     private boolean verified;
 
     private String lastSeenAt;
+    private String connectionStatus;
 
 
 }

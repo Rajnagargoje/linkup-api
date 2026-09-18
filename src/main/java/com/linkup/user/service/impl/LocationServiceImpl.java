@@ -4,8 +4,10 @@ package com.linkup.user.service.impl;
 import com.linkup.user.dto.request.LocationUpdateRequest;
 import com.linkup.user.dto.response.NearbyPersonResponse;
 import com.linkup.user.entity.User;
+import com.linkup.user.repository.ConnectionRepository;
 import com.linkup.user.repository.UserRepository;
 import com.linkup.user.service.LocationService;
+import com.linkup.user.utils.ConnectionStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +20,8 @@ import java.util.List;
 public class LocationServiceImpl implements LocationService {
 
     private final UserRepository userRepository;
+
+    private final ConnectionRepository connectionRepository;
 
 
     // ============================================================
@@ -99,7 +103,11 @@ public class LocationServiceImpl implements LocationService {
                 .orElseThrow(() ->
                         new RuntimeException("User not found")
                 );
-
+        List<Long> connectedUserIds =
+                connectionRepository.findConnectedUserIds(
+                        currentUser.getId(),
+                        ConnectionStatus.ACCEPTED
+                );
 
         // Check current user's location
         if (currentUser.getLatitude() == null ||
@@ -133,6 +141,10 @@ public class LocationServiceImpl implements LocationService {
                 continue;
             }
 
+            if(connectedUserIds.contains(user.getId())){
+                continue;
+            }
+
 
             // Calculate distance
             double distance = calculateDistance(
@@ -142,6 +154,12 @@ public class LocationServiceImpl implements LocationService {
                     user.getLatitude(),
                     user.getLongitude()
             );
+
+            String connectionStatus =
+                    getConnectionStatus(
+                            currentUser,
+                            user
+                    );
 
 
             // Check radius
@@ -155,7 +173,8 @@ public class LocationServiceImpl implements LocationService {
                         Math.round(distance * 100.0) / 100.0,
                         user.getOnline(),
                         user.getEmailVerified(),
-                        null
+                        null,
+                        connectionStatus
                 );
 
                 // Add to result
@@ -241,5 +260,55 @@ public class LocationServiceImpl implements LocationService {
 
         // Distance in kilometers
         return EARTH_RADIUS_KM * c;
+    }
+
+    private String getConnectionStatus(
+            User currentUser,
+            User targetUser
+    ) {
+
+        String currentPublicId =
+                currentUser.getPublicId();
+
+        String targetPublicId =
+                targetUser.getPublicId();
+
+        String pairKey;
+
+        if (currentPublicId.compareTo(targetPublicId) < 0) {
+            pairKey =
+                    currentPublicId + ":" + targetPublicId;
+        } else {
+            pairKey =
+                    targetPublicId + ":" + currentPublicId;
+        }
+
+        return connectionRepository
+                .findByPairKey(pairKey)
+                .map(connection -> {
+
+                    if (connection.getStatus()
+                            == ConnectionStatus.ACCEPTED) {
+
+                        return "CONNECTED";
+                    }
+
+                    if (connection.getStatus()
+                            == ConnectionStatus.PENDING) {
+
+                        if (connection.getSender()
+                                .getId()
+                                .equals(currentUser.getId())) {
+
+                            return "REQUEST_SENT";
+                        }
+
+                        return "REQUEST_RECEIVED";
+                    }
+
+                    return "NONE";
+
+                })
+                .orElse("NONE");
     }
 }

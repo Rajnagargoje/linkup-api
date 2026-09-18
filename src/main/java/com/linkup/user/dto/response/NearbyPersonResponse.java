@@ -27,6 +27,8 @@ public class NearbyPersonResponse {
 
     private String meta;
 
+    private String connectionStatus;
+
     public NearbyPersonResponse() {
     }
 
@@ -38,7 +40,8 @@ public class NearbyPersonResponse {
             Double distanceKm,
             Boolean online,
             Boolean verified,
-            String meta
+            String meta,
+            String connectionStatus
     ) {
         this.publicId = publicId;
         this.name = name;
@@ -48,6 +51,7 @@ public class NearbyPersonResponse {
         this.online = online;
         this.verified = verified;
         this.meta = meta;
+        this.connectionStatus = connectionStatus;
     }
 
 }
