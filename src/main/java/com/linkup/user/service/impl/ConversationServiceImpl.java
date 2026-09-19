@@ -4,12 +4,10 @@ package com.linkup.user.service.impl;
 
 import com.linkup.user.dto.chat.ConversationResponse;
 import com.linkup.user.entity.User;
+import com.linkup.user.entity.chat.ChatMessage;
 import com.linkup.user.entity.chat.Conversation;
 import com.linkup.user.entity.chat.ConversationParticipant;
-import com.linkup.user.repository.ConnectionRepository;
-import com.linkup.user.repository.ConversationParticipantRepository;
-import com.linkup.user.repository.ConversationRepository;
-import com.linkup.user.repository.UserRepository;
+import com.linkup.user.repository.*;
 import com.linkup.user.service.ConversationService;
 import com.linkup.user.utils.ConnectionStatus;
 import com.linkup.user.utils.ConversationType;
@@ -30,6 +28,8 @@ public class ConversationServiceImpl
 
     private final ConversationParticipantRepository
             participantRepository;
+
+    private final ChatMessageRepository chatMessageRepository;
 
     private final ConnectionRepository connectionRepository;
 
@@ -91,7 +91,7 @@ public class ConversationServiceImpl
                                 )
                         );
 
-        return toResponse(
+        return mapToResponse(
                 conversation,
                 currentUser
         );
@@ -115,7 +115,7 @@ public class ConversationServiceImpl
                         !participant.isArchived()
                 )
                 .map(participant ->
-                        toResponse(
+                        mapToResponse(
                                 participant.getConversation(),
                                 currentUser
                         )
@@ -124,25 +124,64 @@ public class ConversationServiceImpl
     }
 
     @Override
+    @Transactional
     public void markAsRead(
             Long conversationId,
-            String currentUsername,
+            String username,
             Long messageId
     ) {
 
-        ConversationParticipant participant =
-                getParticipant(
-                        conversationId,
-                        currentUsername
+        User currentUser = userRepository
+                .findByUsername(username)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("User not found")
                 );
 
-        participant.setLastReadMessageId(
-                messageId
-        );
 
-        participantRepository.save(
-                participant
-        );
+        ConversationParticipant participant =
+                participantRepository
+                        .findByConversationIdAndUserPublicId(
+                                conversationId,
+                                currentUser.getPublicId()
+                        )
+                        .orElseThrow(() ->
+                                new IllegalStateException(
+                                        "You are not part of this conversation"
+                                )
+                        );
+
+
+        ChatMessage message =
+                chatMessageRepository
+                        .findById(messageId)
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "Message not found"
+                                )
+                        );
+
+
+        if (!message.getConversation()
+                .getId()
+                .equals(conversationId)) {
+
+            throw new IllegalArgumentException(
+                    "Message does not belong to this conversation"
+            );
+        }
+
+
+        Long previousReadMessageId =
+                participant.getLastReadMessageId();
+
+
+        if (previousReadMessageId == null ||
+                messageId > previousReadMessageId) {
+
+            participant.setLastReadMessageId(messageId);
+
+            participantRepository.save(participant);
+        }
     }
 
     @Override
@@ -278,54 +317,65 @@ public class ConversationServiceImpl
                 );
     }
 
-    private ConversationResponse toResponse(
+    private ConversationResponse mapToResponse(
             Conversation conversation,
             User currentUser
     ) {
 
-        User friend =
-                conversation.getParticipants()
-                        .stream()
-                        .map(
-                                ConversationParticipant::getUser
-                        )
-                        .filter(
-                                user ->
-                                        !user.getId()
-                                                .equals(
-                                                        currentUser.getId()
-                                                )
-                        )
-                        .findFirst()
-                        .orElseThrow();
-
         ConversationParticipant currentParticipant =
                 conversation.getParticipants()
                         .stream()
-                        .filter(
-                                participant ->
-                                        participant
-                                                .getUser()
-                                                .getId()
-                                                .equals(
-                                                        currentUser.getId()
-                                                )
+                        .filter(participant ->
+                                participant.getUser()
+                                        .getId()
+                                        .equals(currentUser.getId())
                         )
                         .findFirst()
-                        .orElseThrow();
+                        .orElseThrow(() ->
+                                new IllegalStateException(
+                                        "Current user is not a participant"
+                                )
+                        );
+
+        User friend =
+                conversation.getParticipants()
+                        .stream()
+                        .map(ConversationParticipant::getUser)
+                        .filter(user ->
+                                !user.getId().equals(currentUser.getId())
+                        )
+                        .findFirst()
+                        .orElseThrow(() ->
+                                new IllegalStateException(
+                                        "Friend not found in conversation"
+                                )
+                        );
+
+
+        long unreadCount =
+                chatMessageRepository.countUnreadMessages(
+                        conversation.getId(),
+                        currentUser.getPublicId(),
+                        currentParticipant.getLastReadMessageId()
+                );
+
 
         return new ConversationResponse(
                 conversation.getId(),
                 conversation.getType().name(),
+
                 friend.getPublicId(),
                 friend.getUsername(),
                 friend.getProfilePhoto(),
                 friend.getAge(),
                 friend.getOnline(),
                 friend.getLastSeenAt(),
+
                 conversation.getLastMessagePreview(),
                 conversation.getUpdatedAt(),
-                0,
+
+                unreadCount,
+
                 currentParticipant.isMuted(),
                 currentParticipant.isArchived(),
                 currentParticipant.isPinned()
