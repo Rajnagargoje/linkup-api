@@ -17,30 +17,16 @@ public interface ConnectionRepository
 
     Optional<Connection> findByPairKey(String pairKey);
 
-    /*
-     * Incoming requests.
-     *
-     * Example:
-     * Rahul -> Ganesh
-     *
-     * Ganesh will get Rahul here.
-     */
     List<Connection> findByReceiverAndStatusOrderByCreatedAtDesc(
             User receiver,
             ConnectionStatus status
     );
 
-    /*
-     * Requests sent by current user.
-     */
     List<Connection> findBySenderAndStatusOrderByCreatedAtDesc(
             User sender,
             ConnectionStatus status
     );
 
-    /*
-     * Get all accepted connections for a user.
-     */
     List<Connection> findByStatusAndSenderOrStatusAndReceiver(
             ConnectionStatus senderStatus,
             User sender,
@@ -48,12 +34,7 @@ public interface ConnectionRepository
             User receiver
     );
 
-    /*
-     * Returns the internal User IDs of everyone who is already
-     * connected with the current user.
-     *
-     * This is used by Nearby People.
-     */
+
     @Query("""
             SELECT
                 CASE
@@ -69,9 +50,7 @@ public interface ConnectionRepository
             @Param("status") ConnectionStatus status
     );
 
-    /*
-     * Check whether two users are already connected.
-     */
+
     @Query("""
             SELECT COUNT(c) > 0
             FROM Connection c
