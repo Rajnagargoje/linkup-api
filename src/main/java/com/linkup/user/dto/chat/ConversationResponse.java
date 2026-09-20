@@ -31,6 +31,8 @@ public record ConversationResponse(
 
         boolean archived,
 
-        boolean pinned
+        boolean pinned,
+        boolean friends,
+        int introductionsRemaining
 ) {
 }

@@ -34,6 +34,7 @@ public class ConversationServiceImpl
     private final ConnectionRepository connectionRepository;
 
     private final UserRepository userRepository;
+    private final com.linkup.user.service.ChatRelationshipPolicy chatPolicy;
 
     @Override
     public ConversationResponse getOrCreateDirectConversation(
@@ -60,22 +61,7 @@ public class ConversationServiceImpl
             );
         }
 
-        /*
-         * IMPORTANT:
-         * Chat is allowed only between accepted friends.
-         */
-        boolean connected =
-                connectionRepository.areConnected(
-                        currentUser.getId(),
-                        friend.getId(),
-                        ConnectionStatus.ACCEPTED
-                );
-
-        if (!connected) {
-            throw new IllegalArgumentException(
-                    "You can chat only with an accepted friend"
-            );
-        }
+        chatPolicy.ensureContact(currentUser, friend);
 
         Conversation conversation =
                 conversationRepository
@@ -378,7 +364,9 @@ public class ConversationServiceImpl
 
                 currentParticipant.isMuted(),
                 currentParticipant.isArchived(),
-                currentParticipant.isPinned()
+                currentParticipant.isPinned(),
+                chatPolicy.friends("u:" + currentUser.getPublicId(), "u:" + friend.getPublicId()),
+                (int) Math.max(0, 3 - chatMessageRepository.countBetween(currentUser.getPublicId(), friend.getPublicId()))
         );
     }
 }

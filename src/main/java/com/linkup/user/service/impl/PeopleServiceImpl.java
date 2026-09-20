@@ -17,6 +17,7 @@ public class PeopleServiceImpl implements PeopleService {
 
     private final UserRepository userRepository;
     private final ConnectionRepository connectionRepository;
+    private final com.linkup.user.service.ChatRelationshipPolicy chatPolicy;
 
     @Override
     public PersonProfileResponse getPersonProfile(
@@ -50,6 +51,7 @@ public class PeopleServiceImpl implements PeopleService {
             );
         }
 
+        chatPolicy.ensureContact(currentUser, user);
         String connectionStatus =
                 getConnectionStatus(
                         currentUser,
@@ -76,31 +78,8 @@ public class PeopleServiceImpl implements PeopleService {
                 user.getProfilePhoto()
         );
 
-        /*
-         * Friend-only profile data.
-         *
-         * Friends get full photos/interests.
-         */
-        if ("CONNECTED".equals(connectionStatus)) {
-
-            response.setPhotos(
-                    user.getPhotos()
-            );
-
-            response.setInterests(
-                    user.getInterests()
-            );
-
-        } else {
-
-            response.setPhotos(
-                    java.util.Collections.emptyList()
-            );
-
-            response.setInterests(
-                    java.util.Collections.emptyList()
-            );
-        }
+        response.setPhotos(user.getPhotos());
+        response.setInterests(user.getInterests());
 
         response.setLookingFor(
                 user.getLookingFor() != null

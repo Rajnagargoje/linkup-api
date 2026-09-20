@@ -40,6 +40,7 @@ public class ChatMessageServiceImpl
     private final UserRepository userRepository;
 
     private final SimpMessagingTemplate messagingTemplate;
+    private final com.linkup.user.service.ChatRelationshipPolicy chatPolicy;
 
     @Override
     public ChatMessageResponse sendMessage(
@@ -48,7 +49,7 @@ public class ChatMessageServiceImpl
     ) {
 
         User sender =
-                getUserByUsername(username);
+                userRepository.findByUsernameForUpdate(username).orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         Conversation conversation =
                 conversationRepository
@@ -77,6 +78,18 @@ public class ChatMessageServiceImpl
                                 )
                         );
 
+        for (ConversationParticipant participant : conversation.getParticipants()) {
+            User recipient = participant.getUser();
+            if (recipient.getId().equals(sender.getId())) continue;
+            chatPolicy.ensureContact(sender, recipient);
+            if (conversation.getType() == com.linkup.user.utils.ConversationType.DIRECT
+                    && !chatPolicy.friends("u:" + sender.getPublicId(), "u:" + recipient.getPublicId())
+                    && messageRepository.countBetween(sender.getPublicId(), recipient.getPublicId()) >= 3) {
+                throw new IllegalArgumentException("You have sent 3 introduction messages. Become friends to continue.");
+            }
+        }
+
+        if (request.content() != null && request.content().length() > 2000) throw new IllegalArgumentException("Messages must be at most 2000 characters.");
         if (request.content() == null
                 || request.content().isBlank()) {
 
@@ -241,6 +254,13 @@ public class ChatMessageServiceImpl
                     "Message cannot be empty"
             );
         }
+
+        for (ConversationParticipant participant : message.getConversation().getParticipants()) {
+            if (!participant.getUser().getId().equals(message.getSender().getId())) {
+                chatPolicy.ensureContact(message.getSender(), participant.getUser());
+            }
+        }
+        if (content.length() > 2000) throw new IllegalArgumentException("Messages must be at most 2000 characters.");
 
         message.setContent(
                 content.trim()

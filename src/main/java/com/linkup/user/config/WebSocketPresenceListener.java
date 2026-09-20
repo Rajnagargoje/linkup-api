@@ -24,14 +24,14 @@ public class WebSocketPresenceListener {
     @EventListener
     public void handleConnect(SessionConnectedEvent event) {
         Principal principal = event.getUser();
-        if (principal == null) return;
+        if (principal == null || principal instanceof com.linkup.user.service.GuestSessionService.GuestPrincipal) return;
         setPresence(principal.getName(), true);
     }
 
     @EventListener
     public void handleDisconnect(SessionDisconnectEvent event) {
         Principal principal = event.getUser();
-        if (principal == null) return;
+        if (principal == null || principal instanceof com.linkup.user.service.GuestSessionService.GuestPrincipal) return;
         setPresence(principal.getName(), false);
     }
 

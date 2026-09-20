@@ -17,6 +17,13 @@ public class ChatMessageController {
 
     private final ChatMessageService chatMessageService;
 
+    @PostMapping("/{conversationId}/messages")
+    public ChatMessageResponse send(Principal principal, @PathVariable Long conversationId,
+            @RequestBody com.linkup.user.dto.chat.SendMessageRequest request) {
+        return chatMessageService.sendMessage(principal.getName(),
+                new com.linkup.user.dto.chat.SendMessageRequest(conversationId, request.content(), request.replyToMessageId()));
+    }
+
     @GetMapping("/{conversationId}/messages")
     public ResponseEntity<List<ChatMessageResponse>> getMessages(
             Principal principal,

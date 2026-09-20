@@ -22,6 +22,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
         config.enableSimpleBroker("/topic", "/queue");
+        config.setPreservePublishOrder(true);
         config.setApplicationDestinationPrefixes("/app");
         // Enables /user/{username}/queue/... destinations for 1-to-1
         // direct messages addressed to a specific person's session.
@@ -30,6 +31,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
+        registry.setPreserveReceiveOrder(true);
         registry.addEndpoint("/chat")
                 .setAllowedOrigins(java.util.Arrays.stream(allowedOrigins.split(","))
                         .map(String::trim)

@@ -23,6 +23,7 @@ public class ConnectionServiceImpl implements ConnectionService {
 
     private final ConnectionRepository connectionRepository;
     private final UserRepository userRepository;
+    private final com.linkup.user.service.ChatRelationshipPolicy chatPolicy;
 
     @Override
     public ConnectionResponseDTO sendRequest(
@@ -38,6 +39,7 @@ public class ConnectionServiceImpl implements ConnectionService {
                         new RuntimeException("User not found")
                 );
 
+        chatPolicy.ensureContact(sender, receiver);
         /*
          * Cannot send request to yourself.
          */
@@ -70,6 +72,9 @@ public class ConnectionServiceImpl implements ConnectionService {
         if (existingOptional.isPresent()) {
 
             Connection existing = existingOptional.get();
+            if (existing.getStatus() == ConnectionStatus.REJECTED) {
+                throw new IllegalArgumentException("This connection request was declined.");
+            }
 
             if (existing.getStatus() == ConnectionStatus.ACCEPTED) {
                 throw new IllegalArgumentException(
@@ -193,6 +198,7 @@ public class ConnectionServiceImpl implements ConnectionService {
             );
         }
 
+        chatPolicy.ensureContact(currentUser, connection.getSender());
         connection.setStatus(ConnectionStatus.ACCEPTED);
         connection.setAcceptedAt(LocalDateTime.now());
 

@@ -41,6 +41,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 .body(new ApiResponseDTO<>(401, ex.getMessage(), null));
     }
 
+    @ExceptionHandler(org.springframework.security.authentication.BadCredentialsException.class)
+    public ResponseEntity<ApiResponseDTO<Void>> handleSessionError(org.springframework.security.authentication.BadCredentialsException ex) {
+        return ResponseEntity.status(401).body(new ApiResponseDTO<>(401, ex.getMessage(), null));
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponseDTO<Void>> handleIllegalArgumentException(IllegalArgumentException ex) {
         return ResponseEntity

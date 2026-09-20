@@ -9,6 +9,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> {
+    // Count across all conversations, including deleted messages, so the allowance cannot be reset.
+    @Query("select count(m) from ChatMessage m where m.sender.publicId = :sender and m.conversation.type = com.linkup.user.utils.ConversationType.DIRECT and exists (select p.id from ConversationParticipant p where p.conversation = m.conversation and p.user.publicId = :recipient)")
+    long countBetween(String sender, String recipient);
 
     Page<ChatMessage> findByConversationIdOrderByCreatedAtDesc(
             Long conversationId,
