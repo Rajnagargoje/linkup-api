@@ -32,3 +32,13 @@ build/
 ### VS Code ###
 .vscode/
 uploads/
+
+# Local credentials must not be published with the deployment.
+src/main/resources/application.properties
+src/main/resources/application-local*
+.env
+.env.*
+!.env.example
+*firebase-adminsdk*.json
+*service-account*.json
+secrets/

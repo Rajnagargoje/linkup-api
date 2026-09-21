@@ -3,6 +3,7 @@ package com.linkup.user.config;
 import com.linkup.user.entity.User;
 import com.linkup.user.repository.UserRepository;
 import com.linkup.user.service.impl.JWTService;
+import com.linkup.user.service.GuestSessionService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +42,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
 
     private final JWTService jwtService;
     private final UserRepository userRepository;
+    private final GuestSessionService guestSessions;
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -49,6 +51,11 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
 
         if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
             String authHeader = accessor.getFirstNativeHeader("Authorization");
+
+            if (authHeader == null && accessor.getFirstNativeHeader("Guest-Token") != null) {
+                accessor.setUser(guestSessions.authenticate(accessor.getFirstNativeHeader("Guest-Token")));
+                return message;
+            }
 
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 logger.warn("STOMP CONNECT rejected: missing Authorization header");
@@ -86,6 +93,39 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
                     username, null, List.of(new SimpleGrantedAuthority(user.getRole().name()))
             );
             accessor.setUser(principal);
+        }
+
+        if (accessor != null && (accessor.getCommand() == StompCommand.SEND || accessor.getCommand() == StompCommand.SUBSCRIBE)) {
+            if (accessor.getUser() == null) throw new BadCredentialsException("Authentication required");
+            String destination = accessor.getDestination();
+            if (destination == null || (accessor.getCommand() == StompCommand.SEND && !destination.startsWith("/app/"))
+                    || (accessor.getCommand() == StompCommand.SUBSCRIBE && !destination.startsWith("/topic/") && !destination.startsWith("/user/queue/"))) {
+                throw new BadCredentialsException("Invalid chat destination");
+            }
+            if (accessor.getUser() instanceof GuestSessionService.GuestPrincipal) {
+                guestSessions.resolve(accessor.getUser()); // Recheck expiry and linked-account status.
+                boolean allowed = accessor.getCommand() == StompCommand.SUBSCRIBE
+                        ? "/user/queue/random".equals(destination)
+                        : java.util.Set.of("/app/random/join", "/app/random/leave", "/app/random/message",
+                                "/app/random/connect", "/app/random/block", "/app/random/report").contains(destination == null ? "" : destination);
+                if (!allowed) throw new BadCredentialsException("Guests can only use random chat.");
+            }
+        }
+
+        if (accessor != null && accessor.getCommand() == StompCommand.SUBSCRIBE
+                && accessor.getDestination() != null
+                && (accessor.getDestination().contains("*") || accessor.getDestination().contains("?")
+                    || accessor.getDestination().contains("{"))) {
+            throw new BadCredentialsException("Subscription patterns are not allowed");
+        }
+
+        if (accessor != null && accessor.getDestination() != null
+                && accessor.getDestination().contains("/queue/random")) {
+            // Only the broker may publish events; clients subscribe through their own user destination.
+            if (accessor.getUser() == null || accessor.getCommand() != StompCommand.SUBSCRIBE
+                    || !"/user/queue/random".equals(accessor.getDestination())) {
+                throw new BadCredentialsException("Invalid random chat destination");
+            }
         }
 
         return message;

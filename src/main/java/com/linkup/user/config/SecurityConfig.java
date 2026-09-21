@@ -85,8 +85,10 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(
                         auth -> auth
+                                .requestMatchers("/api/moderation/**").hasAuthority("ADMIN")
                                 .requestMatchers("/swagger-ui/**", "/swagger-resources/*", "/v3/api-docs/**",
                                         "/api/user/register", "/api/user/login", "/api/user/check-username",
+                                        "/api/random/guest", "/actuator/health", "/actuator/health/**",
                                         // Uploaded photos need to load in plain <img> tags, which can't
                                         // attach an Authorization header - so this is public by necessity.
                                         // Only static files from the upload directory are served here; the
