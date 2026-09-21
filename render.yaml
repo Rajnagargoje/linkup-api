@@ -20,7 +20,7 @@ services:
       - key: JWT_SECRET
         sync: false
       - key: CORS_ALLOWED_ORIGINS
-        value: https://localhost
+        value: http://localhost:5173,capacitor://localhost,http://localhost
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY
