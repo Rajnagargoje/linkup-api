@@ -136,7 +136,7 @@ public class LocationServiceImpl implements LocationService {
         // ========================================================
 
         for (User user : users) {
-            if (chatPolicy.blocked("u:" + currentUser.getPublicId(), "u:" + user.getPublicId()) || !Boolean.TRUE.equals(user.getIsActive())) continue;
+            if (chatPolicy.hiddenFromDiscovery("u:" + currentUser.getPublicId(), "u:" + user.getPublicId()) || !Boolean.TRUE.equals(user.getIsActive())) continue;
 
             // Don't show current user
             if (user.getId().equals(currentUser.getId())) {

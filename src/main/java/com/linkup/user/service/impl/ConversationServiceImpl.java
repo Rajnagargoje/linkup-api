@@ -35,6 +35,7 @@ public class ConversationServiceImpl
 
     private final UserRepository userRepository;
     private final com.linkup.user.service.ChatRelationshipPolicy chatPolicy;
+    private final com.linkup.user.notification.NotificationService notifications;
 
     @Override
     public ConversationResponse getOrCreateDirectConversation(
@@ -165,6 +166,7 @@ public class ConversationServiceImpl
                 messageId > previousReadMessageId) {
 
             participant.setLastReadMessageId(messageId);
+            notifications.readMessages(currentUser, conversationId, messageId);
 
             participantRepository.save(participant);
         }

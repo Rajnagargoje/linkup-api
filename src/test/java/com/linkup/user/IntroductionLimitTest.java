@@ -32,7 +32,7 @@ class IntroductionLimitTest {
         when(conversations.findById(1L)).thenReturn(Optional.of(conversation));
         when(participants.findByConversationIdAndUserPublicId(1L,"alice")).thenReturn(Optional.of(a));
         when(messages.save(any())).thenAnswer(call -> { ChatMessage message = call.getArgument(0); message.setId(1L); return message; });
-        service = new ChatMessageServiceImpl(messages, conversations, participants, users, mock(SimpMessagingTemplate.class), policy);
+        service = new ChatMessageServiceImpl(messages, conversations, participants, users, mock(SimpMessagingTemplate.class), policy, mock(com.linkup.user.notification.NotificationService.class));
     }
     @Test void rejectsFourthIntroductionBeforeSavingOrBroadcasting() {
         when(messages.countBetween("alice", "bob")).thenReturn(3L);

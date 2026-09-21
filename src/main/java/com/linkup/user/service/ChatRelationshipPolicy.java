@@ -13,8 +13,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class ChatRelationshipPolicy {
     private final ChatBlockRepository blocks;
     private final ConnectionRepository connections;
+    private final com.linkup.user.repository.ChatReportRepository reports;
 
     public boolean blocked(String a, String b) { return blocks.blocks(a, b); }
+    // Reports hide the target for the reporter; they do not globally hide a person.
+    public boolean hiddenFromDiscovery(String viewer, String target) {
+        return blocked(viewer, target) || reports.existsByReporterAndTarget(viewer, target);
+    }
     public boolean friends(String a, String b) {
         if (!a.startsWith("u:") || !b.startsWith("u:")) return false;
         String left = a.substring(2), right = b.substring(2);
@@ -38,5 +43,7 @@ public class ChatRelationshipPolicy {
     public void migrateGuest(String guest, String account) {
         blocks.migrateBlocker(guest, account);
         blocks.migrateTarget(guest, account);
+        reports.migrateReporter(guest, account);
+        reports.migrateTarget(guest, account);
     }
 }

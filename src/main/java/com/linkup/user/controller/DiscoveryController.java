@@ -20,7 +20,7 @@ public class DiscoveryController {
         var current = users.findByUsername(principal.getName()).orElseThrow();
         return users.findByIsActiveTrueAndIsBannedFalseAndIsDeletedFalse(PageRequest.of(Math.max(0, page), 50, Sort.by("createdAt").descending()))
                 .stream().filter(user -> !user.getId().equals(current.getId()))
-                .filter(user -> !policy.blocked("u:" + current.getPublicId(), "u:" + user.getPublicId()))
+                .filter(user -> !policy.hiddenFromDiscovery("u:" + current.getPublicId(), "u:" + user.getPublicId()))
                 .map(user -> new NearbyPersonResponse(user.getPublicId(), user.getUsername(), user.getAge(), user.getProfilePhoto(),
                         null, user.getOnline(), user.getEmailVerified(), user.getCreatedAt().isAfter(java.time.LocalDateTime.now().minusDays(7)) ? "New here" : null, null)).toList();
     }

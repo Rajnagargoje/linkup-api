@@ -35,7 +35,7 @@ class RandomChatServiceTest {
         policy = mock(ChatRelationshipPolicy.class);
         when(policy.mayMatch(anyString(), anyString())).thenReturn(true);
         connections = mock(ConnectionService.class);
-        service = new RandomChatService(messaging, identities, policy, connections, new SimpleRateLimiter(), mock(com.linkup.user.repository.ChatReportRepository.class));
+        service = new RandomChatService(messaging, identities, policy, connections, new SimpleRateLimiter(), mock(com.linkup.user.repository.ChatReportRepository.class), mock(com.linkup.user.notification.NotificationService.class));
     }
 
     @SuppressWarnings("unchecked")

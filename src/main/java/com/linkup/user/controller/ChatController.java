@@ -19,9 +19,11 @@ public class ChatController {
     private static final int MAX_MESSAGE_LENGTH = 2000;
 
     private final RoomRepository roomRepository;
+    private final org.springframework.data.mongodb.core.MongoTemplate mongo;
 
-    public ChatController(RoomRepository roomRepository) {
+    public ChatController(RoomRepository roomRepository, org.springframework.data.mongodb.core.MongoTemplate mongo) {
         this.roomRepository = roomRepository;
+        this.mongo = mongo;
     }
 
     // for sending and receiving messages
@@ -58,8 +60,10 @@ public class ChatController {
         message.setSender(principal.getName());
         message.setTimeStamp(LocalDateTime.now());
 
-        room.getMessages().add(message);
-        roomRepository.save(room);
+        // Concurrent messages must append atomically rather than overwrite another sender's history.
+        mongo.updateFirst(org.springframework.data.mongodb.core.query.Query.query(
+                org.springframework.data.mongodb.core.query.Criteria.where("roomId").is(roomId)),
+                new org.springframework.data.mongodb.core.query.Update().push("messages", message), Room.class);
 
         return message;
     }

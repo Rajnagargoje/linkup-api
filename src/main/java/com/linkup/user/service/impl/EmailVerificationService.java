@@ -37,7 +37,7 @@ public class EmailVerificationService {
     // same principle as password hashing (never store the raw code),
     // without pulling in a second hashing library for a 6-digit number.
     private final PasswordEncoder passwordEncoder;
-    private final JavaMailSender mailSender;
+    private final TransactionalEmailSender mailSender;
 
     @Value("${app.mail.from:no-reply@linkup.app}")
     private String fromAddress;
@@ -144,7 +144,7 @@ public class EmailVerificationService {
         } catch (Exception ex) {
             // Don't leak SMTP/provider details to the client — log it
             // server-side and surface a generic failure instead.
-            logger.error("Failed to send verification email to {}", toAddress, ex);
+            logger.error("Verification email delivery failed: {}", ex.getClass().getSimpleName());
             throw new IllegalArgumentException("Could not send verification email. Please try again shortly.");
         }
     }

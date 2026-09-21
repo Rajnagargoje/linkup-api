@@ -37,6 +37,7 @@ public class RandomChatService {
     private final ConnectionService connections;
     private final SimpleRateLimiter limiter;
     private final com.linkup.user.repository.ChatReportRepository reports;
+    private final com.linkup.user.notification.NotificationService notifications;
     private final Map<String, Deque<String>> transcripts = new HashMap<>();
     private final Map<String, Member> members = new HashMap<>();
     private final Map<String, Member> waiting = new LinkedHashMap<>();
@@ -46,9 +47,11 @@ public class RandomChatService {
     };
 
     public RandomChatService(SimpMessagingTemplate messaging, GuestSessionService identities,
-            ChatRelationshipPolicy policy, ConnectionService connections, SimpleRateLimiter limiter, com.linkup.user.repository.ChatReportRepository reports) {
+            ChatRelationshipPolicy policy, ConnectionService connections, SimpleRateLimiter limiter, com.linkup.user.repository.ChatReportRepository reports,
+            com.linkup.user.notification.NotificationService notifications) {
         this.messaging = messaging; this.identities = identities; this.policy = policy;
         this.connections = connections; this.limiter = limiter; this.reports = reports;
+        this.notifications = notifications;
     }
     public void join(String username, String sessionId) { join(() -> username, sessionId, new Preferences("", List.of())); }
     public synchronized void join(Principal principal, String sessionId, Preferences preferences) {
@@ -137,6 +140,7 @@ public class RandomChatService {
         report.setMatchId(matchId); report.setReason(reason.trim());
         report.setEvidence(String.join("\n", transcripts.getOrDefault(matchId, new ArrayDeque<>())));
         reports.save(report);
+        notifications.reportReceived(report.getReporter(), report.getId());
         block(principal, sessionId, matchId);
         emit(member, Map.of("type", "CONNECTION", "message", "Report submitted and person blocked."));
     }

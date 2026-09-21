@@ -30,6 +30,9 @@ public class RoomController {
     // create room
     @PostMapping
     public ResponseEntity<?> createRoom(@Valid @RequestBody CreateRoomRequest request) {
+        if (request.roomId().toLowerCase(java.util.Locale.ROOT).startsWith("system-")) {
+            return ResponseEntity.badRequest().body("System room IDs are reserved.");
+        }
         if (roomRepository.findByRoomId(request.roomId()) != null) {
             return ResponseEntity.badRequest().body("Room already exists!");
         }
@@ -66,8 +69,8 @@ public class RoomController {
         size = Math.min(Math.max(1, size), MAX_PAGE_SIZE); // clamp so nobody can request the whole history in one shot
 
         List<Message> messages = room.getMessages();
-        int start = Math.max(0, messages.size() - (page + 1) * size);
-        int end = Math.min(messages.size(), start + size);
+        int end = (int) Math.max(0L, messages.size() - (long) page * size);
+        int start = Math.max(0, end - size);
         List<Message> paginatedMessages = messages.subList(start, end);
         return ResponseEntity.ok(paginatedMessages);
     }

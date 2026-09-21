@@ -41,6 +41,7 @@ public class ChatMessageServiceImpl
 
     private final SimpMessagingTemplate messagingTemplate;
     private final com.linkup.user.service.ChatRelationshipPolicy chatPolicy;
+    private final com.linkup.user.notification.NotificationService notifications;
 
     @Override
     public ChatMessageResponse sendMessage(
@@ -156,6 +157,12 @@ public class ChatMessageServiceImpl
                 conversation
         );
 
+        for (var participant : conversation.getParticipants()) {
+            if (!participant.getUser().getId().equals(sender.getId()))
+                notifications.create(participant.getUser(), sender, com.linkup.user.notification.NotificationType.MESSAGE,
+                    conversation.getId(), saved.getId(), sender.getUsername(), saved.getContent(),
+                    participant.isMuted() || participant.isArchived());
+        }
         ChatMessageResponse response =
                 toResponse(saved);
 
@@ -172,13 +179,14 @@ public class ChatMessageServiceImpl
                                     .getUser()
                                     .getUsername();
 
-                    messagingTemplate
-                            .convertAndSendToUser(
-                                    recipient,
-                                    "/queue/conversations/"
-                                            + conversation.getId(),
-                                    response
-                            );
+                    Runnable deliver = () -> messagingTemplate.convertAndSendToUser(
+                        recipient, "/queue/conversations/" + conversation.getId(), response);
+                    if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive())
+                        org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                            new org.springframework.transaction.support.TransactionSynchronization() {
+                                @Override public void afterCommit() { deliver.run(); }
+                            });
+                    else deliver.run();
                 });
 
         return response;

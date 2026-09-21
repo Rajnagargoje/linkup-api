@@ -24,6 +24,7 @@ public class ConnectionServiceImpl implements ConnectionService {
     private final ConnectionRepository connectionRepository;
     private final UserRepository userRepository;
     private final com.linkup.user.service.ChatRelationshipPolicy chatPolicy;
+    private final com.linkup.user.notification.NotificationService notifications;
 
     @Override
     public ConnectionResponseDTO sendRequest(
@@ -108,6 +109,7 @@ public class ConnectionServiceImpl implements ConnectionService {
             existing.setUpdatedAt(LocalDateTime.now());
 
             Connection saved = connectionRepository.save(existing);
+            notifyRequest(receiver, sender, saved.getId());
 
             return toDTO(saved, sender);
         }
@@ -120,6 +122,7 @@ public class ConnectionServiceImpl implements ConnectionService {
         connection.setPairKey(pairKey);
 
         Connection saved = connectionRepository.save(connection);
+        notifyRequest(receiver, sender, saved.getId());
 
         return toDTO(saved, sender);
     }
@@ -205,6 +208,9 @@ public class ConnectionServiceImpl implements ConnectionService {
         Connection saved =
                 connectionRepository.save(connection);
 
+        notifications.readRequests(username, List.of(connectionId));
+        notifications.create(connection.getSender(), currentUser, com.linkup.user.notification.NotificationType.FRIEND_ACCEPTED,
+            saved.getId(), null, "Friend request accepted", currentUser.getUsername() + " accepted your friend request.", false);
         return toDTO(saved, currentUser);
     }
 
@@ -243,6 +249,7 @@ public class ConnectionServiceImpl implements ConnectionService {
         }
 
         connection.setStatus(ConnectionStatus.REJECTED);
+        notifications.readRequests(username, List.of(connectionId));
 
         connectionRepository.save(connection);
     }
@@ -368,6 +375,11 @@ public class ConnectionServiceImpl implements ConnectionService {
         connectionRepository.delete(connection);
     }
 
+
+    private void notifyRequest(User receiver, User sender, Long connectionId) {
+        notifications.create(receiver, sender, com.linkup.user.notification.NotificationType.FRIEND_REQUEST,
+            connectionId, null, "New friend request", sender.getUsername() + " wants to connect with you.", false);
+    }
 
     private User getUserByUsername(String username) {
 

@@ -1,0 +1,7 @@
+# Only build inputs enter the Docker context.
+**
+!pom.xml
+!src/
+!src/**
+src/main/resources/**
+!src/main/resources/application-render.properties
