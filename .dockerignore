@@ -4,4 +4,4 @@
 !src/
 !src/**
 src/main/resources/**
-!src/main/resources/application-render.properties
+!src/main/resources/application-aws.properties
