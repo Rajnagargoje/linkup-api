@@ -12,7 +12,7 @@ USER linkup
 
 ENV SPRING_PROFILES_ACTIVE=aws
 ENV PORT=8081
-ENV JAVA_TOOL_OPTIONS="-Xms64m -Xmx320m -XX:MaxMetaspaceSize=96m -XX:ReservedCodeCacheSize=32m -Xss512k -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError -XX:ActiveProcessorCount=1"
+ENV JAVA_TOOL_OPTIONS="-Xms64m -Xmx320m -XX:MaxMetaspaceSize=128m -XX:ReservedCodeCacheSize=32m -Xss512k -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError -XX:ActiveProcessorCount=1"
 
 EXPOSE 8081
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
