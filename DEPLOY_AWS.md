@@ -1,6 +1,6 @@
 # LinkUp backend deployment on AWS Elastic Beanstalk
 
-This project is prepared for a **single-container Docker Elastic Beanstalk environment**. It replaces the previous Render hosting configuration. Neon PostgreSQL, MongoDB Atlas, Cloudinary, Brevo, and Firebase can remain unchanged.
+This project is prepared for a **single-container Docker Elastic Beanstalk environment**. It replaces the previous Render hosting configuration. Neon PostgreSQL, MongoDB Atlas, Cloudinary, Resend, and Firebase can remain unchanged.
 
 ## 1. AWS service to create
 
@@ -35,7 +35,7 @@ CORS_ALLOWED_ORIGINS=https://localhost,capacitor://localhost,http://localhost
 CLOUDINARY_CLOUD_NAME=<cloudinary-cloud>
 CLOUDINARY_API_KEY=<cloudinary-key>
 CLOUDINARY_API_SECRET=<cloudinary-secret>
-BREVO_API_KEY=<brevo-key>
+RESEND_API_KEY=<resend-key>
 MAIL_FROM=<verified-sender>
 FIREBASE_PROJECT_ID=linkup-7898e
 LINKUP_PUSH_ENABLED=false
