@@ -32,6 +32,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.List;
+
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -44,13 +46,8 @@ public class SecurityConfig {
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
     private final CustomAccessDeniedHandler customAccessDeniedHandler;
 
-    // Comma-separated list, e.g.:
-    //   cors.allowed-origins=http://localhost:5173,capacitor://localhost,http://localhost
-    // Capacitor apps run from a different origin than the Vite dev
-    // server, so a single hardcoded origin breaks the packaged mobile
-    // app even though it works fine in the browser during development.
-    @Value("${cors.allowed-origins:http://localhost:5173}")
-    private String allowedOrigins;
+//    @Value("${cors.allowed-origins:http://localhost:5173}")
+//    private String allowedOrigins;
 
     @Autowired
     public SecurityConfig(@Lazy JwtAuthFilter jwtAuthFilter, @Lazy UserDetailsService userDetailsService, CustomAuthenticationEntryPoint customAuthenticationEntryPoint,
@@ -89,22 +86,10 @@ public class SecurityConfig {
                                 .requestMatchers("/swagger-ui/**", "/swagger-resources/*", "/v3/api-docs/**",
                                         "/api/user/register", "/api/user/login", "/api/user/check-username",
                                         "/api/random/guest", "/actuator/health", "/actuator/health/**",
-                                        // Uploaded photos need to load in plain <img> tags, which can't
-                                        // attach an Authorization header - so this is public by necessity.
-                                        // Only static files from the upload directory are served here; the
-                                        // actual UPLOAD endpoint (/api/user/me/photos) is still authenticated.
                                         "/uploads/**",
-                                        // The SockJS HTTP handshake (info/xhr-streaming/etc.) happens
-                                        // before a STOMP session exists, so it can't carry a Bearer
-                                        // header the way a normal REST call does. Real auth for chat
-                                        // happens per-connection in StompAuthChannelInterceptor, which
-                                        // rejects the STOMP CONNECT frame itself if the JWT is missing
-                                        // or invalid — this permitAll only covers the transport handshake.
                                         "/chat/**"
                                 )
                                 .permitAll()
-                                // Room creation/joining/history now requires a valid JWT — it used
-                                // to be fully open, letting anyone read any room's message history.
                                 .anyRequest().authenticated()
                 )
                 .exceptionHandling(exception -> exception
@@ -141,16 +126,42 @@ public class SecurityConfig {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        for (String origin : allowedOrigins.split(",")) {
-            configuration.addAllowedOrigin(origin.trim());
-        }
-        configuration.addAllowedMethod("*"); // GET, POST, PUT, DELETE, etc.
-        configuration.addAllowedHeader("*"); // allow all headers
-        configuration.setAllowCredentials(true); // if you use cookies/auth
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        CorsConfiguration configuration = new CorsConfiguration();
+
+        configuration.setAllowedOriginPatterns(List.of(
+                "http://localhost:*",
+                "http://127.0.0.1:*",
+                "http://192.168.*.*:*",
+                "capacitor://localhost",
+                "https://localhost"
+        ));
+
+        configuration.setAllowedMethods(List.of(
+                "GET",
+                "POST",
+                "PUT",
+                "PATCH",
+                "DELETE",
+                "OPTIONS"
+        ));
+
+        configuration.setAllowedHeaders(List.of("*"));
+
+        configuration.setExposedHeaders(List.of(
+                "Authorization",
+                "Content-Type"
+        ));
+
+        configuration.setAllowCredentials(true);
+
+        configuration.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
+
         source.registerCorsConfiguration("/**", configuration);
+
         return source;
     }
 }
