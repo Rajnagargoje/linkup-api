@@ -130,11 +130,14 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         configuration.setAllowedOriginPatterns(List.of(
+                "http://localhost",
                 "http://localhost:*",
-                "http://127.0.0.1:*",
-                "http://192.168.*.*:*",
+                "https://localhost",
+                "https://localhost:*",
                 "capacitor://localhost",
-                "https://localhost"
+                "http://127.0.0.1",
+                "http://127.0.0.1:*",
+                "http://192.168.*.*:*"
         ));
 
         configuration.setAllowedMethods(List.of(
