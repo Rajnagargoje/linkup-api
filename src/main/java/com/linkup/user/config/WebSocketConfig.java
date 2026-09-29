@@ -1,7 +1,6 @@
 package com.linkup.user.config;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
@@ -16,34 +15,45 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final StompAuthChannelInterceptor stompAuthChannelInterceptor;
 
-    @Value("${cors.allowed-origins:http://localhost:5173}")
-    private String allowedOrigins;
-
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        config.enableSimpleBroker("/topic", "/queue");
+
+        config.enableSimpleBroker(
+                "/topic",
+                "/queue"
+        );
+
         config.setPreservePublishOrder(true);
+
         config.setApplicationDestinationPrefixes("/app");
-        // Enables /user/{username}/queue/... destinations for 1-to-1
-        // direct messages addressed to a specific person's session.
+
         config.setUserDestinationPrefix("/user");
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
+
         registry.setPreserveReceiveOrder(true);
+
         registry.addEndpoint("/chat")
-                .setAllowedOrigins(java.util.Arrays.stream(allowedOrigins.split(","))
-                        .map(String::trim)
-                        .toArray(String[]::new))
+                .setAllowedOriginPatterns(
+                        "http://localhost",
+                        "http://localhost:*",
+                        "https://localhost",
+                        "https://localhost:*",
+                        "capacitor://localhost",
+                        "http://127.0.0.1",
+                        "http://127.0.0.1:*",
+                        "http://192.168.*.*:*"
+                )
                 .withSockJS();
     }
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        // This is what actually authenticates every socket connection —
-        // without it, /chat/** being permitAll at the HTTP layer meant
-        // ANY client could connect and publish messages as anyone.
-        registration.interceptors(stompAuthChannelInterceptor);
+
+        registration.interceptors(
+                stompAuthChannelInterceptor
+        );
     }
 }
