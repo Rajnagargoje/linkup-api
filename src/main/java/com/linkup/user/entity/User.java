@@ -20,7 +20,13 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table(name = "users")
+@Table(
+               name = "users",
+                indexes = @Index(
+                       name = "idx_users_nearby_latitude",
+                        columnList = "location_visible,is_active,is_banned,is_deleted,latitude"
+                )
+        )
 public class User {
 
     @Id

@@ -2,7 +2,6 @@ package com.linkup.user.service.impl;
 
 
 import com.linkup.user.dto.response.PersonProfileResponse;
-import com.linkup.user.entity.Connection;
 import com.linkup.user.entity.User;
 import com.linkup.user.repository.ConnectionRepository;
 import com.linkup.user.repository.UserRepository;
@@ -131,8 +130,8 @@ public class PeopleServiceImpl implements PeopleService {
 
         return connectionRepository
                 .findByPairKey(pairKey)
-                .map(Connection::getStatus)
-                .map(status -> {
+                .map(connection -> {
+                    ConnectionStatus status = connection.getStatus();
 
                     if (status ==
                             ConnectionStatus.ACCEPTED) {
@@ -143,7 +142,7 @@ public class PeopleServiceImpl implements PeopleService {
                     if (status ==
                             ConnectionStatus.PENDING) {
 
-                        return "REQUEST_SENT";
+                        return connection.getSender().getId().equals(currentUser.getId())?"REQUEST_SENT" : "REQUEST_RECEIVED";
                     }
 
                     return "NONE";

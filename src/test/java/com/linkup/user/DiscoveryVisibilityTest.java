@@ -70,4 +70,33 @@ class DiscoveryVisibilityTest {
         var result = new LocationServiceImpl(users, connections, policy).getNearbyPeople("me", 10);
         assertEquals(List.of("stranger"), result.stream().map(person -> person.getPublicId()).toList());
     }
+    @Test
+    void nearbyUsesOneQueryWithoutPerPersonLookups() {
+        User me = user(1, "me");
+        when(users.findByUsername("me")).thenReturn(Optional.of(me));
+
+        UserRepository.NearbyRow row = mock(UserRepository.NearbyRow.class);
+        when(row.getPublicId()).thenReturn("stranger");
+        when(row.getName()).thenReturn("stranger");
+        when(row.getDistanceKm()).thenReturn(1.234);
+        when(row.getConnectionStatus()).thenReturn("NONE");
+
+        when(users.findNearbyPeople(
+                eq(1L), eq("u:me"), eq(12.0), eq(77.0),
+                anyDouble(), anyDouble(), eq(10.0)
+        )).thenReturn(List.of(row));
+
+        var result = new LocationServiceImpl(users, connections, policy)
+                .getNearbyPeople("me", 10);
+
+        assertEquals(List.of("stranger"),
+                result.stream().map(person -> person.getPublicId()).toList());
+        assertEquals(1.23, result.get(0).getDistanceKm(), 0.000001);
+
+        verify(users, times(1)).findNearbyPeople(
+                eq(1L), eq("u:me"), eq(12.0), eq(77.0),
+                anyDouble(), anyDouble(), eq(10.0)
+        );
+        verifyNoInteractions(connections, blocks, reports);
+    }
 }
