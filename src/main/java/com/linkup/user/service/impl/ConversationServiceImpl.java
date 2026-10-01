@@ -107,6 +107,13 @@ public class ConversationServiceImpl
                                 currentUser
                         )
                 )
+                .filter(conversation ->
+                        !"DIRECT".equals(conversation.type())
+                                || !chatPolicy.blocked(
+                                "u:" + currentUser.getPublicId(),
+                                "u:" + conversation.friendPublicId()
+                        )
+                )
                 .toList();
     }
 
