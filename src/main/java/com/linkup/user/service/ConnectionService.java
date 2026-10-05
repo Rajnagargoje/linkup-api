@@ -44,4 +44,7 @@ public interface ConnectionService {
             String username,
             String targetPublicId
     );
+    void blockUser(String username, String targetPublicId);
+
+    void reportUser(String username, String targetPublicId, String reason);
 }

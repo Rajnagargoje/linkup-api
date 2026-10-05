@@ -9,7 +9,6 @@ import com.linkup.user.entity.chat.Conversation;
 import com.linkup.user.entity.chat.ConversationParticipant;
 import com.linkup.user.repository.*;
 import com.linkup.user.service.ConversationService;
-import com.linkup.user.utils.ConnectionStatus;
 import com.linkup.user.utils.ConversationType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -62,7 +61,7 @@ public class ConversationServiceImpl
             );
         }
 
-        chatPolicy.ensureContact(currentUser, friend);
+        chatPolicy.ensureDirectMessage(currentUser, friend);
 
         Conversation conversation =
                 conversationRepository
@@ -107,13 +106,11 @@ public class ConversationServiceImpl
                                 currentUser
                         )
                 )
-                .filter(conversation ->
-                        !"DIRECT".equals(conversation.type())
-                                || !chatPolicy.blocked(
+                .filter(conversation -> !"DIRECT".equals(conversation.type())
+                        || !chatPolicy.blocked(
                                 "u:" + currentUser.getPublicId(),
                                 "u:" + conversation.friendPublicId()
-                        )
-                )
+                        ))
                 .toList();
     }
 
@@ -363,8 +360,8 @@ public class ConversationServiceImpl
                 friend.getUsername(),
                 friend.getProfilePhoto(),
                 friend.getAge(),
-                friend.getOnline(),
-                friend.getLastSeenAt(),
+                friend.getPublicOnline(),
+                friend.getPublicLastSeenAt(),
 
                 conversation.getLastMessagePreview(),
                 conversation.getUpdatedAt(),

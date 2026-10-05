@@ -32,6 +32,13 @@ public class ChatRelationshipPolicy {
                 || Boolean.TRUE.equals(b.getIsBanned()) || Boolean.TRUE.equals(b.getIsDeleted())
                 || !Boolean.TRUE.equals(b.getIsActive())) throw new IllegalArgumentException("This person is unavailable.");
     }
+    public void ensureDirectMessage(User sender, User recipient) {
+        ensureContact(sender, recipient);
+        if (Boolean.FALSE.equals(recipient.getMessageRequestsEnabled())
+                && !friends("u:" + sender.getPublicId(), "u:" + recipient.getPublicId())) {
+            throw new IllegalArgumentException("This person only accepts messages from friends. Send a friend request first.");
+        }
+    }
     @Transactional
     public void block(String a, String b) {
         if (a.equals(b)) throw new IllegalArgumentException("You cannot block yourself.");

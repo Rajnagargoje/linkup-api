@@ -1,6 +1,5 @@
 package com.linkup.user.config;
 
-import com.linkup.user.entity.User;
 import com.linkup.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
@@ -43,7 +42,7 @@ public class WebSocketPresenceListener {
 
             Map<String, Object> payload = new HashMap<>();
             payload.put("username", username);
-            payload.put("status", online ? "ONLINE" : "OFFLINE");
+            payload.put("status", user.getPublicOnline() ? "ONLINE" : "OFFLINE");
             messagingTemplate.convertAndSend("/topic/presence", payload);
         });
     }

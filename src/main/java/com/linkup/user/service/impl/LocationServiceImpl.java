@@ -90,50 +90,115 @@ public class LocationServiceImpl implements LocationService {
             String username,
             double radiusKm
     ) {
-        if (!Double.isFinite(radiusKm) || radiusKm <= 0) {
+
+        // Validate radius
+        if (radiusKm <= 0) {
             throw new IllegalArgumentException(
-                    "Radius must be a finite positive number"
+                    "Radius must be greater than 0"
             );
         }
 
-        User currentUser = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        Double latitude = currentUser.getLatitude();
-        Double longitude = currentUser.getLongitude();
-
-        if (latitude == null || longitude == null
-                || !Double.isFinite(latitude)
-                || !Double.isFinite(longitude)) {
-            throw new IllegalArgumentException(
-                    "Please update your location first."
-            );
-        }
-
-        double latitudeDelta = Math.toDegrees(radiusKm / 6371.0) + 1e-9;
-
-        return userRepository.findNearbyPeople(
+        // Find current user
+        User currentUser = userRepository
+                .findByUsername(username)
+                .orElseThrow(() ->
+                        new RuntimeException("User not found")
+                );
+        List<Long> connectedUserIds =
+                connectionRepository.findConnectedUserIds(
                         currentUser.getId(),
-                        "u:" + currentUser.getPublicId(),
-                        latitude,
-                        longitude,
-                        Math.max(-90.0, latitude - latitudeDelta),
-                        Math.min(90.0, latitude + latitudeDelta),
-                        radiusKm
-                )
-                .stream()
-                .map(person -> new NearbyPersonResponse(
-                        person.getPublicId(),
-                        person.getName(),
-                        person.getAge(),
-                        person.getProfilePhoto(),
-                        Math.round(person.getDistanceKm() * 100.0) / 100.0,
-                        person.getOnline(),
-                        person.getVerified(),
+                        ConnectionStatus.ACCEPTED
+                );
+
+        // Check current user's location
+        if (currentUser.getLatitude() == null ||
+                currentUser.getLongitude() == null) {
+
+            throw new RuntimeException(
+                    "Your location is not available. " +
+                            "Please update your location first."
+            );
+        }
+
+
+        // Get users who have enabled location visibility
+        List<User> users =
+                userRepository
+                        .findByLocationVisibleTrueAndLatitudeIsNotNullAndLongitudeIsNotNullAndIsDeletedFalseAndIsBannedFalse();
+
+
+        List<NearbyPersonResponse> nearbyPeople =
+                new ArrayList<>();
+
+
+        // ========================================================
+        // CALCULATE DISTANCE FOR EACH USER
+        // ========================================================
+
+        for (User user : users) {
+            if (chatPolicy.hiddenFromDiscovery("u:" + currentUser.getPublicId(), "u:" + user.getPublicId()) || !Boolean.TRUE.equals(user.getIsActive())) continue;
+
+            // Don't show current user
+            if (user.getId().equals(currentUser.getId())) {
+                continue;
+            }
+
+            if(connectedUserIds.contains(user.getId())){
+                continue;
+            }
+
+
+            // Calculate distance
+            double distance = calculateDistance(
+                    currentUser.getLatitude(),
+                    currentUser.getLongitude(),
+
+                    user.getLatitude(),
+                    user.getLongitude()
+            );
+
+            String connectionStatus =
+                    getConnectionStatus(
+                            currentUser,
+                            user
+                    );
+
+
+            // Check radius
+            if (distance <= radiusKm) {
+
+                NearbyPersonResponse response = new NearbyPersonResponse(
+                        user.getPublicId(),
+                        user.getUsername(),
+                        user.getAge(),
+                        user.getProfilePhoto(),
+                        Math.round(distance * 100.0) / 100.0,
+                        user.getPublicOnline(),
+                        user.getEmailVerified(),
                         null,
-                        person.getConnectionStatus()
-                ))
-                .toList();
+                        connectionStatus
+                );
+
+                // Add to result
+                nearbyPeople.add(response);
+            }
+        }
+
+
+        // ========================================================
+        // SORT BY DISTANCE
+        // ========================================================
+
+        nearbyPeople.sort(
+                (person1, person2) ->
+                        Double.compare(
+                                person1.getDistanceKm(),
+                                person2.getDistanceKm()
+                        )
+        );
+
+
+        return nearbyPeople;
     }
 
 

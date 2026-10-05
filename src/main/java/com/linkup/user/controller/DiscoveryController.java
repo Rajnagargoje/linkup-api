@@ -18,10 +18,10 @@ public class DiscoveryController {
     @GetMapping("/discover") @Transactional(readOnly = true)
     public List<NearbyPersonResponse> discover(Principal principal, @RequestParam(defaultValue = "0") int page) {
         var current = users.findByUsername(principal.getName()).orElseThrow();
-        return users.findByIsActiveTrueAndIsBannedFalseAndIsDeletedFalse(PageRequest.of(Math.max(0, page), 50, Sort.by("createdAt").descending()))
+        return users.findByLocationVisibleTrueAndIsActiveTrueAndIsBannedFalseAndIsDeletedFalse(PageRequest.of(Math.max(0, page), 50, Sort.by("createdAt").descending()))
                 .stream().filter(user -> !user.getId().equals(current.getId()))
                 .filter(user -> !policy.hiddenFromDiscovery("u:" + current.getPublicId(), "u:" + user.getPublicId()))
                 .map(user -> new NearbyPersonResponse(user.getPublicId(), user.getUsername(), user.getAge(), user.getProfilePhoto(),
-                        null, user.getOnline(), user.getEmailVerified(), user.getCreatedAt().isAfter(java.time.LocalDateTime.now().minusDays(7)) ? "New here" : null, null)).toList();
+                        null, user.getPublicOnline(), user.getEmailVerified(), user.getCreatedAt().isAfter(java.time.LocalDateTime.now().minusDays(7)) ? "New here" : null, null)).toList();
     }
 }

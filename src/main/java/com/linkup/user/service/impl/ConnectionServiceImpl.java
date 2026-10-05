@@ -4,6 +4,8 @@ package com.linkup.user.service.impl;
 
 import com.linkup.user.dto.response.ConnectionResponseDTO;
 import com.linkup.user.entity.Connection;
+import com.linkup.user.entity.ChatReport;
+import com.linkup.user.repository.ChatReportRepository;
 import com.linkup.user.entity.User;
 import com.linkup.user.repository.ConnectionRepository;
 import com.linkup.user.repository.UserRepository;
@@ -23,6 +25,7 @@ public class ConnectionServiceImpl implements ConnectionService {
 
     private final ConnectionRepository connectionRepository;
     private final UserRepository userRepository;
+    private final ChatReportRepository reports;
     private final com.linkup.user.service.ChatRelationshipPolicy chatPolicy;
     private final com.linkup.user.notification.NotificationService notifications;
 
@@ -376,6 +379,47 @@ public class ConnectionServiceImpl implements ConnectionService {
     }
 
 
+    @Override
+    public void blockUser(String username, String targetPublicId) {
+        User currentUser = getUserByUsername(username);
+        User target = getActionTarget(currentUser, targetPublicId);
+
+        chatPolicy.block("u:" + currentUser.getPublicId(), "u:" + target.getPublicId());
+        connectionRepository.findByPairKey(createPairKey(
+                currentUser.getPublicId(), target.getPublicId()
+        )).ifPresent(connectionRepository::delete);
+    }
+
+    @Override
+    public void reportUser(String username, String targetPublicId, String reason) {
+        if (reason == null || reason.isBlank() || reason.strip().length() > 500) {
+            throw new IllegalArgumentException("Enter a report reason between 1 and 500 characters.");
+        }
+
+        User currentUser = getUserByUsername(username);
+        User target = getActionTarget(currentUser, targetPublicId);
+        Connection connection = connectionRepository
+                .findByPairKey(createPairKey(currentUser.getPublicId(), target.getPublicId()))
+                .filter(item -> item.getStatus() == ConnectionStatus.ACCEPTED)
+                .orElseThrow(() -> new IllegalArgumentException("This user is no longer your friend."));
+
+        ChatReport report = new ChatReport();
+        report.setReporter("u:" + currentUser.getPublicId());
+        report.setTarget("u:" + target.getPublicId());
+        report.setMatchId("friend:" + connection.getId());
+        report.setReason(reason.strip());
+        reports.save(report);
+    }
+
+    private User getActionTarget(User currentUser, String targetPublicId) {
+        User target = userRepository.findByPublicId(targetPublicId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+        if (currentUser.getId().equals(target.getId())) {
+            throw new IllegalArgumentException("You cannot perform this action on yourself.");
+        }
+        return target;
+    }
+
     private void notifyRequest(User receiver, User sender, Long connectionId) {
         notifications.create(receiver, sender, com.linkup.user.notification.NotificationType.FRIEND_REQUEST,
             connectionId, null, "New friend request", sender.getUsername() + " wants to connect with you.", false);
@@ -426,7 +470,7 @@ public class ConnectionServiceImpl implements ConnectionService {
                 otherUser.getUsername(),
                 otherUser.getProfilePhoto(),
                 otherUser.getAge(),
-                otherUser.getOnline(),
+                otherUser.getPublicOnline(),
                 otherUser.getEmailVerified(),
                 connection.getStatus(),
                 connection.getCreatedAt(),

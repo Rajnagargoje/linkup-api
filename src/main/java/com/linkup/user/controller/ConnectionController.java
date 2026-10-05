@@ -218,4 +218,22 @@ public class ConnectionController {
                 )
         );
     }
+
+    @PostMapping("/{publicId}/block")
+    public ResponseEntity<ApiResponseDTO<Void>> blockUser(
+            @PathVariable String publicId, Principal principal) {
+        connectionService.blockUser(principal.getName(), publicId);
+        return ResponseEntity.ok(new ApiResponseDTO<>(200, "User blocked", null));
+    }
+
+    public record ReportRequest(String reason) {}
+
+    @PostMapping("/{publicId}/report")
+    public ResponseEntity<ApiResponseDTO<Void>> reportUser(
+            @PathVariable String publicId,
+            @RequestBody ReportRequest request,
+            Principal principal) {
+        connectionService.reportUser(principal.getName(), publicId, request.reason());
+        return ResponseEntity.ok(new ApiResponseDTO<>(200, "Report submitted", null));
+    }
 }

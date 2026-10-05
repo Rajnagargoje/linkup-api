@@ -2,6 +2,7 @@ package com.linkup.user.service.impl;
 
 
 import com.linkup.user.dto.response.PersonProfileResponse;
+import com.linkup.user.entity.Connection;
 import com.linkup.user.entity.User;
 import com.linkup.user.repository.ConnectionRepository;
 import com.linkup.user.repository.UserRepository;
@@ -87,7 +88,7 @@ public class PeopleServiceImpl implements PeopleService {
         );
 
         response.setOnline(
-                Boolean.TRUE.equals(user.getOnline())
+                Boolean.TRUE.equals(user.getPublicOnline())
         );
 
         response.setVerified(
@@ -97,8 +98,8 @@ public class PeopleServiceImpl implements PeopleService {
         );
 
         response.setLastSeenAt(
-                user.getLastSeenAt() != null
-                        ? user.getLastSeenAt().toString()
+                user.getPublicLastSeenAt() != null
+                        ? user.getPublicLastSeenAt().toString()
                         : null
         );
 
@@ -130,8 +131,8 @@ public class PeopleServiceImpl implements PeopleService {
 
         return connectionRepository
                 .findByPairKey(pairKey)
-                .map(connection -> {
-                    ConnectionStatus status = connection.getStatus();
+                .map(Connection::getStatus)
+                .map(status -> {
 
                     if (status ==
                             ConnectionStatus.ACCEPTED) {
@@ -142,7 +143,7 @@ public class PeopleServiceImpl implements PeopleService {
                     if (status ==
                             ConnectionStatus.PENDING) {
 
-                        return connection.getSender().getId().equals(currentUser.getId())?"REQUEST_SENT" : "REQUEST_RECEIVED";
+                        return "REQUEST_SENT";
                     }
 
                     return "NONE";

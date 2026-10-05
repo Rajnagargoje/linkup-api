@@ -20,13 +20,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table(
-               name = "users",
-                indexes = @Index(
-                       name = "idx_users_nearby_latitude",
-                        columnList = "location_visible,is_active,is_banned,is_deleted,latitude"
-                )
-        )
+@Table(name = "users")
 public class User {
 
     @Id
@@ -74,6 +68,21 @@ public class User {
 
     @Column(nullable = false)
     private Boolean locationVisible = true;
+
+    @Column(name = "activity_visible", columnDefinition = "boolean default true")
+    private Boolean activityVisible = true;
+
+    @Column(name = "message_requests_enabled", columnDefinition = "boolean default true")
+    private Boolean messageRequestsEnabled = true;
+
+    public Boolean getPublicOnline() {
+        return !Boolean.FALSE.equals(activityVisible) && Boolean.TRUE.equals(online);
+    }
+
+    public LocalDateTime getPublicLastSeenAt() {
+        return Boolean.FALSE.equals(activityVisible) ? null : lastSeenAt;
+    }
+
 
     @Column
     private LocalDateTime locationUpdatedAt;
