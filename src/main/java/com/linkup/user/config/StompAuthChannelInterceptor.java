@@ -107,7 +107,11 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
                 boolean allowed = accessor.getCommand() == StompCommand.SUBSCRIBE
                         ? "/user/queue/random".equals(destination)
                         : java.util.Set.of("/app/random/join", "/app/random/leave", "/app/random/message",
-                                "/app/random/connect", "/app/random/block", "/app/random/report").contains(destination == null ? "" : destination);
+                                "/app/random/connect", "/app/random/block", "/app/random/report",
+                                "/app/random/offer", "/app/random/search-people", "/app/random/typing",
+                                "/app/random/ai/retry", "/app/random/companions/list", "/app/random/companions/save",
+                                "/app/random/companions/remove", "/app/random/companions/resume",
+                                "/app/random/connection/accept", "/app/random/connection/status").contains(destination == null ? "" : destination);
                 if (!allowed) throw new BadCredentialsException("Guests can only use random chat.");
             }
         }

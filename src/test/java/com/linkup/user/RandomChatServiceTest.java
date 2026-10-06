@@ -35,8 +35,10 @@ class RandomChatServiceTest {
         policy = mock(ChatRelationshipPolicy.class);
         when(policy.mayMatch(anyString(), anyString())).thenReturn(true);
         connections = mock(ConnectionService.class);
-        service = new RandomChatService(messaging, identities, policy, connections, new SimpleRateLimiter(), mock(com.linkup.user.repository.ChatReportRepository.class), mock(com.linkup.user.notification.NotificationService.class));
+        service = new RandomChatService(messaging, identities, policy, connections, new SimpleRateLimiter(), mock(com.linkup.user.repository.ChatReportRepository.class), mock(com.linkup.user.notification.NotificationService.class), mock(com.linkup.user.randomai.AiChatClient.class), mock(com.linkup.user.randomai.AiCompanionStore.class));
     }
+
+    @org.junit.jupiter.api.AfterEach void tearDown() { service.shutdown(); }
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> latest(String session) {
