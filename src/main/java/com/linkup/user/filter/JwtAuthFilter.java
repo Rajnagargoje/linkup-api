@@ -30,11 +30,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final JWTService jwtService;
 
     private final UserDetailsService userDetailsService;
+    private final com.linkup.user.auth.AuthSessionService authSessions;
 
     @Autowired
-    public JwtAuthFilter(@Lazy JWTService jwtService, UserDetailsService userDetailsService) {
+    public JwtAuthFilter(@Lazy JWTService jwtService, UserDetailsService userDetailsService,
+                        @Lazy com.linkup.user.auth.AuthSessionService authSessions) {
         this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
+        this.authSessions = authSessions;
     }
 
     @Override
@@ -55,8 +58,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             try {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                String sessionId = jwtService.extractSessionId(token);
                 if (userDetails instanceof UserPrinciples userPrinciples
-                        && jwtService.validateToken(token, userPrinciples)) {
+                        && jwtService.validateToken(token, userPrinciples)
+                        && (sessionId == null || authSessions.isActive(sessionId, username))) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userDetails, null, userDetails.getAuthorities()
                     );

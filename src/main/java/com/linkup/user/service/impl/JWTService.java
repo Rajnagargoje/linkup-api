@@ -33,6 +33,18 @@ public class JWTService {
         return createToken(claims, username);
     }
 
+    public String generateToken(String username, Integer tokenVersion, String sessionId) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("tokenVersion", tokenVersion);
+        claims.put("sid", sessionId);
+        claims.put("jti", java.util.UUID.randomUUID().toString());
+        return createToken(claims, username);
+    }
+
+    public String extractSessionId(String token) {
+        return extractClaim(token, claims -> claims.get("sid", String.class));
+    }
+
     private String createToken(Map<String, Object> claims, String username) {
         return Jwts.builder()
                 .setClaims(claims)

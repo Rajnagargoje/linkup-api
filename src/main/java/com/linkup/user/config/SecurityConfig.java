@@ -84,6 +84,8 @@ public class SecurityConfig {
                                 .requestMatchers("/api/moderation/**").hasAuthority("ADMIN")
                                 .requestMatchers("/swagger-ui/**", "/swagger-resources/*", "/v3/api-docs/**",
                                         "/api/user/register", "/api/user/login", "/api/user/check-username",
+                                        "/api/auth/session/login", "/api/auth/session/register",
+                                        "/api/auth/session/refresh", "/api/auth/session/logout",
                                         "/api/random/guest", "/actuator/health", "/actuator/health/**",
                                         "/uploads/**", "/api/public/settings", "/api/public/legal/**",
                                         "/invite/*", "/privacy-policy", "/terms", "/account-deletion",
