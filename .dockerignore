@@ -5,3 +5,4 @@
 !src/**
 src/main/resources/**
 !src/main/resources/application-aws.properties
+!src/main/resources/ai-companions.properties
