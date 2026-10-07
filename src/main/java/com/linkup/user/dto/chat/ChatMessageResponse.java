@@ -2,6 +2,7 @@ package com.linkup.user.dto.chat;
 
 
 import java.time.LocalDateTime;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 public record ChatMessageResponse(
 
@@ -25,12 +26,16 @@ public record ChatMessageResponse(
 
         String replyToContent,
 
+        @JsonSerialize(using = ChatTimestampSerializer.class)
         LocalDateTime createdAt,
 
+        @JsonSerialize(using = ChatTimestampSerializer.class)
         LocalDateTime editedAt,
 
+        @JsonSerialize(using = ChatTimestampSerializer.class)
         LocalDateTime deliveredAt,
 
+        @JsonSerialize(using = ChatTimestampSerializer.class)
         LocalDateTime readAt,
 
         boolean deletedForEveryone

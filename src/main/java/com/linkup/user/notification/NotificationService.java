@@ -22,13 +22,14 @@ public class NotificationService {
     private final ChatMessageRepository messages;
     private final ChatRelationshipPolicy policy;
     private final SimpMessagingTemplate realtime;
+    private final ConnectionRepository connections;
 
     public record Item(Long id, NotificationType type, String title, String body, String actorId,
-                       Long referenceId, Long messageId, Instant createdAt, Instant readAt) {}
+                       Long referenceId, Long messageId, Instant createdAt, Instant readAt, boolean silent) {}
     public record Counts(long total, long requests, long messages) {}
     public Item item(AppNotification n) {
         return new Item(n.getId(), n.getType(), n.getTitle(), n.getBody(), n.getActor(),
-            n.getReferenceId(), n.getMessageId(), n.getCreatedAt(), n.getReadAt());
+            n.getReferenceId(), n.getMessageId(), n.getCreatedAt(), n.getReadAt(), n.isSilent());
     }
     public User user(String username) { return users.findByUsername(username).orElseThrow(() -> new IllegalArgumentException("User unavailable.")); }
     public NotificationPreferences preferencesFor(String publicId) {
@@ -43,6 +44,7 @@ public class NotificationService {
         var n = new AppNotification();
         n.setRecipient(recipient.getPublicId()); n.setActor(actor == null ? null : actor.getPublicId());
         n.setType(type); n.setReferenceId(reference); n.setMessageId(messageId);
+        n.setSilent(muted);
         n.setTitle(title.substring(0, Math.min(title.length(), 160)));
         n.setBody(body.substring(0, Math.min(body.length(), 500)));
         var prefs = preferencesFor(recipient.getPublicId());
@@ -99,7 +101,11 @@ public class NotificationService {
             .orElseThrow(() -> new IllegalArgumentException("Notification not found."));
         if (n.getActor() != null && policy.hiddenFromDiscovery("u:" + owner.getPublicId(), "u:" + n.getActor()))
             throw new IllegalArgumentException("Notification unavailable.");
-        return item(n);
+        var result = item(n);
+        if (n.getType() == NotificationType.MESSAGE && !messageCanAlert(n))
+            return new Item(result.id(), result.type(), result.title(), result.body(), result.actorId(), result.referenceId(),
+                result.messageId(), result.createdAt(), result.readAt(), true);
+        return result;
     }
     public void readAll(String username, Long throughId) {
         notifications.readAll(user(username).getPublicId(), throughId, Instant.now()); changed(username);
@@ -114,7 +120,42 @@ public class NotificationService {
     }
     public NotificationPreferences savePreferences(String username, NotificationPreferences input) {
         input.setUserId(user(username).getPublicId());
-        return preferences.save(input);
+        var saved = preferences.save(input);
+        publishAfterCommit(username, Map.of("kind", "PREFERENCES"));
+        return saved;
+    }
+    /** Recheck the current relationship/read state before an alert or tray reconciliation. */
+    @Transactional(readOnly = true)
+    public boolean shouldAlert(AppNotification n) {
+        var prefs = preferencesFor(n.getRecipient());
+        if (n.getReadAt() != null || n.isSilent() || !prefs.isPushEnabled() || !prefs.allows(n.getType())
+            || (n.getActor() != null && policy.hiddenFromDiscovery("u:" + n.getRecipient(), "u:" + n.getActor()))) return false;
+        if (n.getType() == NotificationType.MESSAGE) {
+            return messageCanAlert(n);
+        }
+        if (n.getType() == NotificationType.FRIEND_REQUEST || n.getType() == NotificationType.FRIEND_ACCEPTED) {
+            if (n.getReferenceId() == null) return false;
+            var c = connections.findById(n.getReferenceId()).orElse(null);
+            if (c == null) return false;
+            if (n.getType() == NotificationType.FRIEND_REQUEST)
+                return c.getStatus() == com.linkup.user.utils.ConnectionStatus.PENDING
+                    && n.getRecipient().equals(c.getReceiver().getPublicId());
+            return c.getStatus() == com.linkup.user.utils.ConnectionStatus.ACCEPTED;
+        }
+        return true;
+    }
+    private boolean messageCanAlert(AppNotification n) {
+        if (n.getReferenceId() == null || n.getMessageId() == null) return false;
+        var p = participants.findByConversationIdAndUserPublicId(n.getReferenceId(), n.getRecipient()).orElse(null);
+        var m = messages.findById(n.getMessageId()).orElse(null);
+        return p != null && !p.isMuted() && !p.isArchived() && m != null && !m.isDeletedForEveryone()
+            && (p.getLastReadMessageId() == null || p.getLastReadMessageId() < n.getMessageId());
+    }
+    @Transactional(readOnly = true)
+    public List<Long> activeDeliveredIds(String username, List<Long> ids) {
+        String owner = user(username).getPublicId();
+        return notifications.findAllById(ids).stream().filter(n -> owner.equals(n.getRecipient()) && shouldAlert(n))
+            .map(AppNotification::getId).toList();
     }
     private String deviceId(String token) {
         try {
@@ -123,10 +164,15 @@ public class NotificationService {
         } catch (java.security.NoSuchAlgorithmException impossible) { throw new IllegalStateException(impossible); }
     }
     public void register(String username, String token) {
+        register(username, token, null, null);
+    }
+    public void register(String username, String token, String installationId, String authSessionId) {
         var owner = user(username);
         String hash = deviceId(token);
         var device = devices.findById(hash).orElseGet(PushDevice::new);
         device.setId(hash); device.setUserId(owner.getPublicId()); device.setToken(token);
+        device.setInstallationId(installationId); device.setAuthSessionId(authSessionId);
+        if (installationId != null) devices.deleteByUserIdAndInstallationIdAndIdNot(owner.getPublicId(), installationId, hash);
         device.setSessionVersion(owner.getTokenVersion()); device.setUpdatedAt(Instant.now()); devices.save(device);
     }
     public void unregister(String username, String token) {

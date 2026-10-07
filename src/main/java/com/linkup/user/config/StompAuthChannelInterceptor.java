@@ -23,9 +23,9 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Runs on every inbound STOMP frame. The only one we care about is
- * CONNECT — that's where we authenticate the socket, exactly once, and
- * attach a Principal to the session. Every frame after that (SUBSCRIBE,
+ * Authenticates CONNECT and attaches a Principal to the session.
+ * Renewable sessions are checked again on SEND and SUBSCRIBE so revoked
+ * sessions lose access. Every frame after CONNECT (SUBSCRIBE,
  * SEND) on this session inherits that Principal, which is what lets
  * ChatController trust `Principal.getName()` as the real sender instead
  * of a client-supplied field in the message body.
@@ -43,6 +43,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
     private final JWTService jwtService;
     private final UserRepository userRepository;
     private final GuestSessionService guestSessions;
+    private final com.linkup.user.auth.AuthSessionService authSessions;
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -89,6 +90,13 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
                 throw new BadCredentialsException("Session has been invalidated, please log in again");
             }
 
+            String authSessionId = jwtService.extractSessionId(token);
+            if (authSessionId != null) {
+                if (!authSessions.isActive(authSessionId, username)) throw new BadCredentialsException("Session expired");
+                if (accessor.getSessionAttributes() == null) accessor.setSessionAttributes(new java.util.HashMap<>());
+                accessor.getSessionAttributes().put("linkup.authSession", authSessionId);
+            }
+
             Principal principal = new UsernamePasswordAuthenticationToken(
                     username, null, List.of(new SimpleGrantedAuthority(user.getRole().name()))
             );
@@ -97,6 +105,9 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
 
         if (accessor != null && (accessor.getCommand() == StompCommand.SEND || accessor.getCommand() == StompCommand.SUBSCRIBE)) {
             if (accessor.getUser() == null) throw new BadCredentialsException("Authentication required");
+            Object authSessionId = accessor.getSessionAttributes() == null ? null : accessor.getSessionAttributes().get("linkup.authSession");
+            if (authSessionId instanceof String id && !authSessions.isActive(id, accessor.getUser().getName()))
+                throw new BadCredentialsException("Session expired");
             String destination = accessor.getDestination();
             if (destination == null || (accessor.getCommand() == StompCommand.SEND && !destination.startsWith("/app/"))
                     || (accessor.getCommand() == StompCommand.SUBSCRIBE && !destination.startsWith("/topic/") && !destination.startsWith("/user/queue/"))) {
@@ -107,7 +118,11 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
                 boolean allowed = accessor.getCommand() == StompCommand.SUBSCRIBE
                         ? "/user/queue/random".equals(destination)
                         : java.util.Set.of("/app/random/join", "/app/random/leave", "/app/random/message",
-                                "/app/random/connect", "/app/random/block", "/app/random/report").contains(destination == null ? "" : destination);
+                                "/app/random/connect", "/app/random/block", "/app/random/report",
+                                "/app/random/offer", "/app/random/search-people", "/app/random/typing",
+                                "/app/random/ai/retry", "/app/random/companions/list", "/app/random/companions/save",
+                                "/app/random/companions/remove", "/app/random/companions/resume",
+                                "/app/random/connection/accept", "/app/random/connection/status").contains(destination == null ? "" : destination);
                 if (!allowed) throw new BadCredentialsException("Guests can only use random chat.");
             }
         }

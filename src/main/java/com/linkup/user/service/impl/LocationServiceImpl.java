@@ -173,7 +173,7 @@ public class LocationServiceImpl implements LocationService {
                         user.getAge(),
                         user.getProfilePhoto(),
                         Math.round(distance * 100.0) / 100.0,
-                        user.getOnline(),
+                        user.getPublicOnline(),
                         user.getEmailVerified(),
                         null,
                         connectionStatus

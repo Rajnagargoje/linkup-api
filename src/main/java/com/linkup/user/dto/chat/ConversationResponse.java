@@ -2,6 +2,7 @@ package com.linkup.user.dto.chat;
 
 
 import java.time.LocalDateTime;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 public record ConversationResponse(
 
@@ -19,10 +20,12 @@ public record ConversationResponse(
 
         Boolean friendOnline,
 
+        @JsonSerialize(using = ChatTimestampSerializer.class)
         LocalDateTime friendLastSeenAt,
 
         String lastMessage,
 
+        @JsonSerialize(using = ChatTimestampSerializer.class)
         LocalDateTime lastMessageAt,
 
         long unreadCount,
