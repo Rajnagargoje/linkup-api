@@ -71,32 +71,38 @@ class DiscoveryVisibilityTest {
         assertEquals(List.of("stranger"), result.stream().map(person -> person.getPublicId()).toList());
     }
     @Test
-    void nearbyUsesOneQueryWithoutPerPersonLookups() {
+    void nearbyFiltersByRadiusAndSortsByDistance() {
         User me = user(1, "me");
-        when(users.findByUsername("me")).thenReturn(Optional.of(me));
+        User near = user(2, "near");
+        User farther = user(3, "farther");
+        User outside = user(4, "outside");
 
-        UserRepository.NearbyRow row = mock(UserRepository.NearbyRow.class);
-        when(row.getPublicId()).thenReturn("stranger");
-        when(row.getName()).thenReturn("stranger");
-        when(row.getDistanceKm()).thenReturn(1.234);
-        when(row.getConnectionStatus()).thenReturn("NONE");
+        near.setLatitude(12.01);
+        farther.setLatitude(12.02);
+        outside.setLatitude(13.0);
 
-        when(users.findNearbyPeople(
-                eq(1L), eq("u:me"), eq(12.0), eq(77.0),
-                anyDouble(), anyDouble(), eq(10.0)
-        )).thenReturn(List.of(row));
+        when(users.findByUsername("me"))
+                .thenReturn(Optional.of(me));
+
+        when(connections.findConnectedUserIds(
+                1L, ConnectionStatus.ACCEPTED
+        )).thenReturn(List.of());
+
+        when(users
+                .findByLocationVisibleTrueAndLatitudeIsNotNullAndLongitudeIsNotNullAndIsDeletedFalseAndIsBannedFalse())
+                .thenReturn(List.of(outside, farther, me, near));
 
         var result = new LocationServiceImpl(users, connections, policy)
                 .getNearbyPeople("me", 10);
 
-        assertEquals(List.of("stranger"),
-                result.stream().map(person -> person.getPublicId()).toList());
-        assertEquals(1.23, result.get(0).getDistanceKm(), 0.000001);
-
-        verify(users, times(1)).findNearbyPeople(
-                eq(1L), eq("u:me"), eq(12.0), eq(77.0),
-                anyDouble(), anyDouble(), eq(10.0)
+        assertEquals(
+                List.of("near", "farther"),
+                result.stream()
+                        .map(NearbyPersonResponse -> NearbyPersonResponse.getPublicId())
+                        .toList()
         );
-        verifyNoInteractions(connections, blocks, reports);
+
+        assertEquals(1.11, result.get(0).getDistanceKm(), 0.000001);
+        assertEquals(2.22, result.get(1).getDistanceKm(), 0.000001);
     }
 }
