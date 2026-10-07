@@ -111,4 +111,9 @@ public class AccountSettingsService {
     public TicketView view(SupportTicket ticket) {
         return new TicketView(ticket.id,ticket.category,ticket.subject,ticket.message,ticket.status,ticket.reply,ticket.createdAt);
     }
+    @Transactional(readOnly=true)
+    public TicketView ticket(String username, Long id) {
+        return view(tickets.findByIdAndOwner(id, user(username).getPublicId())
+            .orElseThrow(() -> new ResourceNotFoundException("Request not found.")));
+    }
 }

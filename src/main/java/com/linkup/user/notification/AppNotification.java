@@ -20,7 +20,8 @@ public class AppNotification {
     @Column(nullable = false, length = 500) private String body;
     @Column(nullable = false) private Instant createdAt = Instant.now();
     private Instant readAt;
+    @Column(nullable = false, columnDefinition = "boolean default false") private boolean silent;
     @Column(nullable = false) private boolean pushDone;
     @Column(nullable = false) private int pushAttempts;
-    @Column(nullable = false) private Instant nextAttemptAt = Instant.now().plusSeconds(5);
+    @Column(nullable = false) private Instant nextAttemptAt = Instant.now().plusSeconds(2);
 }

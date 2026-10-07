@@ -23,7 +23,7 @@ public interface AppNotificationRepository extends JpaRepository<AppNotification
     void readReference(String owner, NotificationType type, Long reference, Instant now);
     @Modifying @Query("update AppNotification n set n.readAt = :now where n.recipient = :owner and n.type = com.linkup.user.notification.NotificationType.MESSAGE and n.referenceId = :conversation and n.messageId <= :throughMessage and n.readAt is null")
     void readMessages(String owner, Long conversation, Long throughMessage, Instant now);
-    List<AppNotification> findTop25ByPushDoneFalseAndNextAttemptAtBeforeOrderByIdAsc(Instant now);
+    List<AppNotification> findTop25ByPushDoneFalseAndNextAttemptAtBeforeOrderByNextAttemptAtAscIdAsc(Instant now);
     @Lock(LockModeType.PESSIMISTIC_WRITE) @Query("select n from AppNotification n where n.id = :id")
     Optional<AppNotification> lockById(Long id);
 }

@@ -10,5 +10,7 @@ public class PushDevice {
     @Column(nullable = false) private String userId;
     @Column(nullable = false, length = 2048) private String token;
     @Column(nullable = false) private Integer sessionVersion;
+    @Column(length = 36) private String authSessionId;
+    @Column(length = 36) private String installationId;
     @Column(nullable = false) private Instant updatedAt = Instant.now();
 }

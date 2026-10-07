@@ -12,6 +12,7 @@ public class AccountSettingsController {
     @GetMapping("/blocked") public AccountSettingsService.PageResult<AccountSettingsService.BlockedUser> blocked(Principal p,@RequestParam(defaultValue="0") int page) { return settings.blocked(p.getName(),page); }
     @DeleteMapping("/blocked/{id}") public void unblock(Principal p,@PathVariable Long id) { settings.unblock(p.getName(),id); }
     @GetMapping("/support") public AccountSettingsService.PageResult<AccountSettingsService.TicketView> tickets(Principal p,@RequestParam(defaultValue="0") int page) { return settings.tickets(p.getName(),page); }
+    @GetMapping("/support/{id}") public AccountSettingsService.TicketView ticket(Principal p,@PathVariable Long id) { return settings.ticket(p.getName(),id); }
     @PostMapping("/support") @ResponseStatus(org.springframework.http.HttpStatus.CREATED)
     public AccountSettingsService.TicketView support(Principal p,@Valid @RequestBody AccountSettingsService.SupportRequest value) { return settings.createTicket(p.getName(),value); }
 }
