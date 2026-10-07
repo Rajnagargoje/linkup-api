@@ -12,7 +12,7 @@ import static org.mockito.Mockito.*;
 
 class GuestSocketPermissionsTest {
     GuestSessionService guests = mock(GuestSessionService.class);
-    StompAuthChannelInterceptor interceptor = new StompAuthChannelInterceptor(mock(JWTService.class), mock(UserRepository.class), guests);
+    StompAuthChannelInterceptor interceptor = new StompAuthChannelInterceptor(mock(JWTService.class), mock(UserRepository.class), guests, mock(com.linkup.user.auth.AuthSessionService.class));
     private void frame(StompCommand command, String destination) {
         var headers = StompHeaderAccessor.create(command);
         headers.setUser(new GuestSessionService.GuestPrincipal("guest")); headers.setDestination(destination);

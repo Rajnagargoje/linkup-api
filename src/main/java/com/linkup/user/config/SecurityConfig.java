@@ -12,7 +12,6 @@ import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
@@ -85,8 +84,11 @@ public class SecurityConfig {
                                 .requestMatchers("/api/moderation/**").hasAuthority("ADMIN")
                                 .requestMatchers("/swagger-ui/**", "/swagger-resources/*", "/v3/api-docs/**",
                                         "/api/user/register", "/api/user/login", "/api/user/check-username",
+                                        "/api/auth/session/login", "/api/auth/session/register",
+                                        "/api/auth/session/refresh", "/api/auth/session/logout",
                                         "/api/random/guest", "/actuator/health", "/actuator/health/**",
-                                        "/uploads/**",
+                                        "/uploads/**", "/api/public/settings", "/api/public/legal/**",
+                                        "/invite/*", "/privacy-policy", "/terms", "/account-deletion",
                                         "/chat/**"
                                 )
                                 .permitAll()

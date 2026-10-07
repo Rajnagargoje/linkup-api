@@ -48,6 +48,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     private static final long LOCK_DURATION_MINUTES = 15;
 
     private final UserRepository userRepository;
+    private final com.linkup.user.randomai.AiSavedConversationRepository aiSavedConversations;
     @Autowired
     private UserMapper userMapper;
     private final AuthenticationManager authenticationManager;
@@ -245,6 +246,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         // and free up the original username/email for reuse, and bump
         // tokenVersion so every outstanding JWT for this account is
         // rejected on its very next request — not just at natural expiry.
+        aiSavedConversations.deleteByOwnerPublicId(user.getPublicId());
         String suffix = UUID.randomUUID().toString().substring(0, 8);
         user.setUsername("deleted_" + user.getId() + "_" + suffix);
         user.setEmail("deleted_" + user.getId() + "_" + suffix + "@linkup.invalid");

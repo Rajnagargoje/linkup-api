@@ -9,6 +9,8 @@ import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
+    List<User> findByPublicIdIn(java.util.Collection<String> publicIds);
+    org.springframework.data.domain.Page<User> findByLocationVisibleTrueAndIsActiveTrueAndIsBannedFalseAndIsDeletedFalse(org.springframework.data.domain.Pageable pageable);
     org.springframework.data.domain.Page<User> findByIsActiveTrueAndIsBannedFalseAndIsDeletedFalse(org.springframework.data.domain.Pageable pageable);
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @org.springframework.data.jpa.repository.Query("select u from User u where u.username = :username")

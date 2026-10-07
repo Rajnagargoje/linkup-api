@@ -4,4 +4,5 @@ import java.util.List;
 public interface PushDeviceRepository extends JpaRepository<PushDevice, String> {
     List<PushDevice> findByUserId(String userId);
     void deleteByIdAndUserId(String id, String userId);
+    void deleteByUserIdAndInstallationIdAndIdNot(String userId, String installationId, String id);
 }

@@ -10,9 +10,9 @@ import java.time.Duration;
 @Configuration
 public class EmailHttpConfig {
     @Bean
-    public RestClient brevoClient(RestClient.Builder builder) {
+    public RestClient resendClient(RestClient.Builder builder) {
         var factory = new JdkClientHttpRequestFactory(HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build());
         factory.setReadTimeout(Duration.ofSeconds(20));
-        return builder.baseUrl("https://api.brevo.com/v3").requestFactory(factory).build();
+        return builder.baseUrl("https://api.resend.com").requestFactory(factory).build();
     }
 }

@@ -82,7 +82,11 @@ public class ChatMessageServiceImpl
         for (ConversationParticipant participant : conversation.getParticipants()) {
             User recipient = participant.getUser();
             if (recipient.getId().equals(sender.getId())) continue;
-            chatPolicy.ensureContact(sender, recipient);
+            if (conversation.getType() == com.linkup.user.utils.ConversationType.DIRECT) {
+                chatPolicy.ensureDirectMessage(sender, recipient);
+            } else {
+                chatPolicy.ensureContact(sender, recipient);
+            }
             if (conversation.getType() == com.linkup.user.utils.ConversationType.DIRECT
                     && !chatPolicy.friends("u:" + sender.getPublicId(), "u:" + recipient.getPublicId())
                     && messageRepository.countBetween(sender.getPublicId(), recipient.getPublicId()) >= 3) {

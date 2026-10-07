@@ -88,7 +88,7 @@ public class PeopleServiceImpl implements PeopleService {
         );
 
         response.setOnline(
-                Boolean.TRUE.equals(user.getOnline())
+                Boolean.TRUE.equals(user.getPublicOnline())
         );
 
         response.setVerified(
@@ -98,8 +98,8 @@ public class PeopleServiceImpl implements PeopleService {
         );
 
         response.setLastSeenAt(
-                user.getLastSeenAt() != null
-                        ? user.getLastSeenAt().toString()
+                user.getPublicLastSeenAt() != null
+                        ? user.getPublicLastSeenAt().toString()
                         : null
         );
 
